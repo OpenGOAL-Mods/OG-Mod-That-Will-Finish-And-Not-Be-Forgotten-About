@@ -169,7 +169,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     self.end_headers()
     self.wfile.write(bytes("404 Not Found", "UTF-8"))
     self.wfile.flush()
-  
+
   def do_GET(self):
     url = urlparse(self.path)
 
@@ -179,7 +179,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     # routing
     match url.path:
 
-      # get 
+      # get
       case "/get":
         response_data = {
           "game_state": MP_INFO["state"],
@@ -200,7 +200,7 @@ class RequestHandler(BaseHTTPRequestHandler):
           "post_game_timeout": MP_INFO["post_game_timeout"],
           "alert_found_pnum": MP_INFO["alert_found_pnum"],
           "alert_seeker_pnum": MP_INFO["alert_seeker_pnum"],
-          "num_hiders": MP_INFO["num_hiders"],      
+          "num_hiders": MP_INFO["num_hiders"],
           "num_hiders_left": MP_INFO["num_hiders_left"],
           "players": {}
         }
@@ -217,7 +217,14 @@ class RequestHandler(BaseHTTPRequestHandler):
         # Write JSON data to the response body
         self.wfile.write(json_data.encode())
         self.wfile.flush()
-
+      case "/fart":
+          response_data = "farted"
+          # Return response
+          self.send_response(200)
+          self.send_header('Content-type', 'text/plain')
+          self.end_headers()
+          self.wfile.write(response_data.encode())
+          self.wfile.flush()
       # else unknown path
       case _:
         self.send_response_not_found_404()
@@ -283,7 +290,7 @@ class RequestHandler(BaseHTTPRequestHandler):
           self.send_response(200)
           self.send_header('Content-type', 'application/json')
           self.end_headers()
-          
+
           response_data = {
             "game_state": MP_INFO["state"],
             "player_num": player_num,
@@ -308,11 +315,11 @@ class RequestHandler(BaseHTTPRequestHandler):
           raw_data = self.rfile.read(content_length)
           # Parse JSON data into dictionary
           data = json.loads(raw_data.decode('utf-8'))
-        
+
           for k in data:
             PLAYER_LIST[player_num][k] = data[k]
           PLAYER_LIST[player_num]["last_update"] = time.time()
-      
+
           # Send response status code
           self.send_response(200)
           self.send_header('Content-type', 'application/json')
@@ -335,22 +342,22 @@ class RequestHandler(BaseHTTPRequestHandler):
             raw_data = self.rfile.read(content_length)
             # Parse JSON data into dictionary
             data = json.loads(raw_data.decode('utf-8'))
-          
+
             for k in data:
               MP_INFO[k] = data[k]
-      
+
           # Send response status code
           self.send_response(200)
           self.send_header('Content-type', 'application/json')
           self.end_headers()
           self.wfile.flush()
-      
+
       case "/mark_found":
         # Get raw body data
         raw_data = self.rfile.read(content_length)
         # Parse JSON data into dictionary
         data = json.loads(raw_data.decode('utf-8'))
-      
+
         seeker = data["seeker_username"]
         found = data["found_username"]
 
@@ -366,7 +373,7 @@ class RequestHandler(BaseHTTPRequestHandler):
           PLAYER_LIST[PLAYER_IDX_LOOKUP[found]]["rank"] = MP_INFO["num_hiders_left"] + MP_INFO["num_seekers"]
         else:
           print("couldn't find player(s) in mark_found", hider, seeker)
-    
+
         # Send response status code
         self.send_response(200)
         self.send_header('Content-type', 'application/json')
@@ -376,7 +383,7 @@ class RequestHandler(BaseHTTPRequestHandler):
       # else unknown path
       case _:
         self.send_response_not_found_404()
-       
+
 def game_loop():
   last_state_change_time = time.time()  # seconds
   latest_alert_time = 0 # seconds
@@ -394,7 +401,7 @@ def game_loop():
     # dismiss after 5s
     elif latest_alert_time > 0 and (time.time() - latest_alert_time) > 5:
       latest_alert_time = 0
-      MP_INFO["alert_found_pnum"] = -1 
+      MP_INFO["alert_found_pnum"] = -1
       MP_INFO["alert_seeker_pnum"] = -1
 
     # collect some info
@@ -420,7 +427,7 @@ def game_loop():
         PLAYER_LIST[i]["is_admin"] = 0
         # dont count this player as joined
         continue
-      
+
       if time.time() - PLAYER_LIST[i]["last_update"] >= PLAYER_DISCONNECT_TIMEOUT:
         # havent heard from player in too long, kick them out
         PLAYER_LIST[i] = copy.deepcopy(DEFAULT_PLAYER_INFO)
@@ -461,7 +468,7 @@ def game_loop():
           seekers = 0
           while seekers < MP_INFO["num_seekers"]:
             i = random.randrange(len(PLAYER_LIST))
-            
+
             if (PLAYER_LIST[i] is None or PLAYER_LIST[i] == {} or
                 # skip players who weren't in start state
                 (PLAYER_LIST[i]["mp_state"] != MpTargetState.READY.value and PLAYER_LIST[i]["mp_state"] != MpTargetState.START.value) or
@@ -523,7 +530,7 @@ def game_loop():
             if PLAYER_LIST[i]["role"] == MpGameRole.SEEKER.value:
               PLAYER_LIST[i]["rank"] = 1
             # else your rank should already be set
-            
+
           MP_INFO["state"] = MpGameState.END.value
           last_state_change_time = time.time()
         # if no seekers, then we should end game
@@ -572,7 +579,7 @@ class ThreadedHTTPServer(HTTPServer):
 
             # Process the request
             self.finish_request(request, client_address)
-            
+
 def run():
   if __name__ == '__main__':
     print('Starting server...')
